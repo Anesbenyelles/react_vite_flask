@@ -217,3 +217,44 @@ def clc_table_de_conti(dictionnaire, matriceburt, variable1, variable2, nom_fich
 
     return contingency_table
 
+def calc_profitligne(nom_fichier, fichier_sortie):
+    try:
+        # Lire le fichier Excel sans ignorer la première ligne
+        df = pd.read_excel(nom_fichier, header=None)  # Spécifiez header=None pour inclure toutes les lignes
+        matrice_proft = df.values
+        nbligne = matrice_proft.shape[0]
+        print(f"Je suis le nombre de lignes : {nbligne}")
+        nb_colmn = matrice_proft.shape[1]
+        print(f"Je suis le nombre de colonnes : {nb_colmn}")
+        
+        # Diviser chaque élément par la somme de sa ligne
+        for i in range(nbligne):
+            somme_ligne = np.sum(matrice_proft[i]) 
+            # Calcule la somme de la ligne i
+            print(f" la somme de ligne  {i}   est    {somme_ligne}")
+            if somme_ligne != 0:  # Vérifie que la somme n'est pas zéro pour éviter la division par zéro
+                matrice_proft[i] = matrice_proft[i] / somme_ligne
+            else:
+                print(f"Somme de zéro évitée à la ligne {i}.")
+        
+        
+        df_modified = pd.DataFrame(matrice_proft)
+        df_modified.to_excel(fichier_sortie, index=False, header=None)
+
+        return matrice_proft  # Retourner la matrice modifiée si besoin
+
+    except FileNotFoundError:
+        print(f"Le fichier '{nom_fichier}' n'a pas été trouvé.")
+        return None  # Retourner None si le fichier n'est pas trouvé
+    except Exception as e:
+        print(f"Une erreur est survenue : {e}")
+        return None  # Retourner None en cas d'erreur
+def calc_fréquences(valeurs):
+    """Calcule les fréquences des valeurs passées."""
+    try:
+        unique_vals, counts = np.unique(valeurs, return_counts=True)
+        frequencies = dict(zip(unique_vals, counts))
+        return frequencies
+    except Exception as e:
+        print(f"Erreur lors du calcul des fréquences : {str(e)}")
+        return {}

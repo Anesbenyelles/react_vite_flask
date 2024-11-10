@@ -1,87 +1,91 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useDropzone } from 'react-dropzone';
 
 function App() {
-  const [tableData, setTableData] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [file, setFile] = useState(null);
+  const [columns, setColumns] = useState([]);
+  const [columnTypes, setColumnTypes] = useState({});
+  const [results, setResults] = useState(null);
+  const [filePath, setFilePath] = useState(''); // Déclaration de l'état pour le chemin du fichier
 
-  // Handle file drop or selection
-  const { getRootProps, getInputProps } = useDropzone({
-    accept: '.xls,.xlsx',
-    onDrop: (acceptedFiles) => handleFileUpload(acceptedFiles[0]),
-  });
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
 
-  // Handle file upload to Flask server
-  const handleFileUpload = async (file) => {
-    setLoading(true); // Set loading state while processing the file
+  const handleUpload = async () => {
     const formData = new FormData();
     formData.append('file', file);
-
+  
     try {
-      const response = await axios.post('http://127.0.0.1:5000/upload', formData, {
+      const response = await axios.post('http://localhost:5000/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      console.log(response.data); // Log the response data
-      setTableData(response.data); // Store the data in state for table rendering
+  
+      setColumns(response.data.columns);
+      setFilePath(response.data.file_path); // Assurez-vous de capturer le chemin du fichier
     } catch (error) {
-      console.error('Error uploading file:', error);
-    } finally {
-      setLoading(false); // Turn off loading state
+      console.error('Erreur lors du téléchargement du fichier:', error.response ? error.response.data : error.message);
     }
   };
 
-  // Render table with the data received from Flask
-  const renderTable = () => {
-    if (tableData.length === 0) return null; // If no data, don't render table
-
-    const headers = Object.keys(tableData[0]); // Get headers from the first row of data
-
-    return (
-      <table border="1" cellPadding="10" style={{ marginTop: '20px', width: '100%' }}>
-        <thead>
-          <tr>
-            {headers.map((header) => (
-              <th key={header}>{header}</th> // Render table headers
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {tableData.map((row, index) => (
-            <tr key={index}>
-              {headers.map((header) => (
-                <td key={header}>{row[header]}</td> // Render each row's data
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    );
+  const handleColumnTypeChange = (col, type) => {
+    if (!col || !type) return; // Vérifiez que les valeurs ne sont pas nulles
+    setColumnTypes((prev) => ({ ...prev, [col]: type }));
   };
+  
+  const handleProcessColumns = async () => {
+    console.log("rani f handleProcessColumns")
+    console.log(filePath)  // Use the correct variable name here
+    console.log(columnTypes)  // And here too
+    try {
+      const response = await axios.post('http://localhost:5000/process_columns', {
+        file_path: filePath,  // Use filePath in the request payload
+        column_types: columnTypes,  // Use columnTypes here as well
+      });
+      setResults(response.data.results);
+    } catch (error) {
+      console.error('Erreur lors du traitement des colonnes:', error);
+    }
+  };
+  
 
   return (
-    <div className="App">
-      <h1>Upload and Display Excel Data</h1>
-      <div {...getRootProps()} style={dropzoneStyles}>
-        <input {...getInputProps()} />
-        <p>Drag & drop an Excel file here, or click to select one</p>
-      </div>
+    <div>
+      <h2>Upload File and Process Columns</h2>
+      <input type="file" onChange={handleFileChange} />
+      <button onClick={handleUpload}>Upload</button>
+      
+      {columns.length > 0 && (
+        <>
+          <h3>Choisir le type de colonnes</h3>
+          <ul>
+            {columns.map((col, index) => (
+              <li key={index}>
+                {col}:
+                <select
+                  onChange={(e) => handleColumnTypeChange(col, e.target.value)}
+                >
+                  <option value="">Select Type</option>
+                  <option value="1">Ordinal</option>
+                  <option value="0" defaultValue>Nominal</option>
+                </select>
+              </li>
+            ))}
+          </ul>
+          <button onClick={handleProcessColumns}>Process Columns</button>
+        </>
+      )}
 
-      {loading && <p>Loading...</p>} {/* Show loading message while processing the file */}
-
-      {renderTable()} {/* Render the table once data is available */}
+      {results && (
+        <div>
+          <h3>Résultats</h3>
+          <pre>{JSON.stringify(results, null, 2)}</pre>
+        </div>
+      )}
     </div>
   );
 }
-
-// Basic styling for the dropzone
-const dropzoneStyles = {
-  border: '2px dashed #cccccc',
-  padding: '20px',
-  textAlign: 'center',
-  marginBottom: '20px',
-};
 
 export default App;
