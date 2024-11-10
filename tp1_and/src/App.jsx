@@ -34,22 +34,57 @@ function App() {
     if (!col || !type) return; // Vérifiez que les valeurs ne sont pas nulles
     setColumnTypes((prev) => ({ ...prev, [col]: type }));
   };
-  
-  const handleProcessColumns = async () => {
-    console.log("rani f handleProcessColumns")
-    console.log(filePath)  // Use the correct variable name here
-    console.log(columnTypes)  // And here too
-    try {
-      const response = await axios.post('http://localhost:5000/process_columns', {
-        file_path: filePath,  // Use filePath in the request payload
-        column_types: columnTypes,  // Use columnTypes here as well
-      });
-      setResults(response.data.results);
-    } catch (error) {
-      console.error('Erreur lors du traitement des colonnes:', error);
+  const [distanceMatrix, setDistanceMatrix] = useState([]);
+ 
+const handleProcessColumns = async () => {
+  console.log("rani f handleProcessColumns")
+  console.log(filePath)  // Use the correct variable name here
+  console.log(columnTypes)  // And here too
+
+  try {
+    const response = await axios.post('http://localhost:5000/process_columns', {
+      file_path: filePath,  // Use filePath in the request payload
+      column_types: columnTypes,  // Use columnTypes here as well
+    });
+
+    setResults(response.data.results);  // Store the results
+
+    // If distance_matrix is part of the results, store it
+    if (response.data.results.distance_matrix) {
+      setDistanceMatrix(response.data.results.distance_matrix);
     }
-  };
-  
+  } catch (error) {
+    console.error('Erreur lors du traitement des colonnes:', error);
+  }
+};
+
+
+const renderDistanceMatrix = () => {
+  if (distanceMatrix.length === 0) {
+    return <p>No distance matrix to display.</p>;
+  }
+
+  return (
+    <table border="1">
+      <thead>
+        <tr>
+          {distanceMatrix[0].map((_, index) => (
+            <th key={index}>Column {index + 1}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {distanceMatrix.map((row, rowIndex) => (
+          <tr key={rowIndex}>
+            {row.map((cell, colIndex) => (
+              <td key={colIndex}>{cell.toFixed(2)}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+};
 
   return (
     <div>
@@ -84,6 +119,7 @@ function App() {
           <pre>{JSON.stringify(results, null, 2)}</pre>
         </div>
       )}
+      {renderDistanceMatrix()}
     </div>
   );
 }

@@ -38,10 +38,6 @@ def upload_file():
         except Exception as e:
             return jsonify({"error": f"Erreur lors du traitement du fichier : {str(e)}"}), 500
     return jsonify({"error": "Format de fichier non valide"}), 400
-
-
-
-
 @app.route('/process_columns', methods=['POST'])
 def process_columns():
     data = request.get_json()
@@ -59,7 +55,7 @@ def process_columns():
         results = {}
         
         for column, col_type in column_types.items():
-            print(f"Processing column: {column} with type: {col_type}")
+            
 
             print(f"Processing column: {column} with type: {col_type}")  # Add logging for each column
             valeurs = df[column].dropna().tolist()
@@ -101,6 +97,7 @@ def process_columns():
     except Exception as e:
         print(f"General error: {str(e)}")  # Log general error
         return jsonify({"error": f"Erreur générale : {str(e)}"}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)

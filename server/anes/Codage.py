@@ -47,7 +47,7 @@ def appliquer_codage_en_matrice(valeurs, codage):
     return matrice
 
 # Fonction pour calculer la matrice de dissemblance entre les lignes
-def calculer_distance_dissemblance(matrice_bits, nom_fichier):
+def calculer_distance_dissemblance(matrice_bits):
     # Convert matrice_bits to a NumPy array if it isn't already
     matrice_bits = np.array(matrice_bits)
 
@@ -71,9 +71,9 @@ def calculer_distance_dissemblance(matrice_bits, nom_fichier):
     print(matrice_distance)
     
     # Save the dissimilarity matrix to an Excel file
-    df_distance = pd.DataFrame(matrice_distance)
-    df_distance.to_excel(nom_fichier, index=False, header=False)  # Save without index and header
-    print(f"Matrice de dissemblance sauvegardée dans le fichier: {nom_fichier}")
+    # df_distance = pd.DataFrame(matrice_distance)
+    # df_distance.to_excel(nom_fichier, index=False, header=False)  # Save without index and header
+    # print(f"Matrice de dissemblance sauvegardée dans le fichier: {nom_fichier}")
     
     return matrice_distance
 
