@@ -1,125 +1,162 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 
 function App() {
   const [file, setFile] = useState(null);
   const [columns, setColumns] = useState([]);
   const [columnTypes, setColumnTypes] = useState({});
   const [results, setResults] = useState(null);
-  const [filePath, setFilePath] = useState(''); // Déclaration de l'état pour le chemin du fichier
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+  const handleFileChange = (event) => {
+    setFile(event.target.files[0]);
   };
 
-  const handleUpload = async () => {
+  const handleColumnTypeChange = (column, value) => {
+    setColumnTypes({
+      ...columnTypes,
+      [column]: value,
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!file) {
+      alert('Veuillez sélectionner un fichier.');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
-  
+
+    setLoading(true);
+    setError(null);
+
     try {
-      const response = await axios.post('http://localhost:5000/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const response = await fetch('http://127.0.0.1:5000/upload', {
+        method: 'POST',
+        body: formData,
       });
-  
-      setColumns(response.data.columns);
-      setFilePath(response.data.file_path); // Assurez-vous de capturer le chemin du fichier
-    } catch (error) {
-      console.error('Erreur lors du téléchargement du fichier:', error.response ? error.response.data : error.message);
+
+      const data = await response.json();
+      if (data.error) {
+        setError(data.error);
+        setLoading(false);
+        return;
+      }
+
+      setColumns(data.columns);
+      await processColumns(data.file_path);
+    } catch (err) {
+      setError('Erreur lors de l\'upload du fichier');
+      setLoading(false);
     }
   };
 
-  const handleColumnTypeChange = (col, type) => {
-    if (!col || !type) return; // Vérifiez que les valeurs ne sont pas nulles
-    setColumnTypes((prev) => ({ ...prev, [col]: type }));
-  };
-  const [distanceMatrix, setDistanceMatrix] = useState([]);
- 
-const handleProcessColumns = async () => {
-  console.log("rani f handleProcessColumns")
-  console.log(filePath)  // Use the correct variable name here
-  console.log(columnTypes)  // And here too
+  const processColumns = async (filePath) => {
+    const columnData = Object.keys(columnTypes).map((column) => ({
+      column,
+      type: columnTypes[column],
+    }));
 
-  try {
-    const response = await axios.post('http://localhost:5000/process_columns', {
-      file_path: filePath,  // Use filePath in the request payload
-      column_types: columnTypes,  // Use columnTypes here as well
-    });
+    try {
+      const response = await fetch('http://127.0.0.1:5000/process_columns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_path: filePath, column_types: columnTypes }),
+      });
 
-    setResults(response.data.results);  // Store the results
+      const data = await response.json();
+      if (data.error) {
+        setError(data.error);
+        setLoading(false);
+        return;
+      }
 
-    // If distance_matrix is part of the results, store it
-    if (response.data.results.distance_matrix) {
-      setDistanceMatrix(response.data.results.distance_matrix);
+      setResults(data);
+      setLoading(false);
+    } catch (err) {
+      setError('Erreur lors du traitement des colonnes');
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Erreur lors du traitement des colonnes:', error);
-  }
-};
+  };
 
-
-const renderDistanceMatrix = () => {
-  if (distanceMatrix.length === 0) {
-    return <p>No distance matrix to display.</p>;
-  }
-
-  return (
-    <table border="1">
-      <thead>
-        <tr>
-          {distanceMatrix[0].map((_, index) => (
-            <th key={index}>Column {index + 1}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {distanceMatrix.map((row, rowIndex) => (
-          <tr key={rowIndex}>
-            {row.map((cell, colIndex) => (
-              <td key={colIndex}>{cell.toFixed(2)}</td>
+  const renderMatrix = (matrix) => {
+    return (
+      <table border="1">
+        <thead>
+          <tr>
+            {matrix[0].map((_, index) => (
+              <th key={index}>Col {index + 1}</th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-};
+        </thead>
+        <tbody>
+          {matrix.map((row, rowIndex) => (
+            <tr key={rowIndex}>
+              {row.map((cell, cellIndex) => (
+                <td key={cellIndex}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  };
 
   return (
     <div>
-      <h2>Upload File and Process Columns</h2>
-      <input type="file" onChange={handleFileChange} />
-      <button onClick={handleUpload}>Upload</button>
+      <h1>Application de traitement de fichier</h1>
       
+      <input type="file" onChange={handleFileChange} />
+      <button onClick={handleSubmit} disabled={loading}>
+        {loading ? 'Chargement...' : 'Télécharger et traiter'}
+      </button>
+
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+
       {columns.length > 0 && (
-        <>
-          <h3>Choisir le type de colonnes</h3>
+        <div>
+          <h2>Colonnes disponibles :</h2>
           <ul>
             {columns.map((col, index) => (
               <li key={index}>
-                {col}:
+                {col}
                 <select
                   onChange={(e) => handleColumnTypeChange(col, e.target.value)}
+                  value={columnTypes[col] || ''}
                 >
-                  <option value="">Select Type</option>
+                  <option value="">Sélectionner le type</option>
+                  <option value="0">Nominal</option>
                   <option value="1">Ordinal</option>
-                  <option value="0" defaultValue>Nominal</option>
                 </select>
               </li>
             ))}
           </ul>
-          <button onClick={handleProcessColumns}>Process Columns</button>
-        </>
+        </div>
       )}
 
       {results && (
         <div>
-          <h3>Résultats</h3>
-          <pre>{JSON.stringify(results, null, 2)}</pre>
+          <h2>Résultats</h2>
+          <div>
+            <h3>Matrice de dissemblance</h3>
+            {results.distance_matrix && renderMatrix(results.distance_matrix)}
+          </div>
+          <div>
+            <h3>Matrice de Burt</h3>
+            {results.burt_matrix && renderMatrix(results.burt_matrix)}
+          </div>
+          <div>
+            <h3>Tables de contingence</h3>
+            {Object.keys(results.contingency_tables || {}).map((tableKey) => (
+              <div key={tableKey}>
+                <h4>{tableKey}</h4>
+                {renderMatrix(results.contingency_tables[tableKey])}
+              </div>
+            ))}
+          </div>
         </div>
       )}
-      {renderDistanceMatrix()}
     </div>
   );
 }

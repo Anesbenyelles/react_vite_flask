@@ -6,7 +6,8 @@ from werkzeug.utils import secure_filename
 import os
 from Codage import (afficher_colonnes, recuperer_colonne, calculer_distance_dissemblance,
                     coder_valeurs, appliquer_codage_en_matrice, trier_selon_ordre_automatique,
-                    tablec_ordinal, coder_ordinal, calculer_burts)
+                    tablec_ordinal, coder_ordinal, calculer_burts, clc_table_de_conti)
+import itertools
 
 app = Flask(__name__)
 CORS(app)
@@ -38,6 +39,7 @@ def upload_file():
         except Exception as e:
             return jsonify({"error": f"Erreur lors du traitement du fichier : {str(e)}"}), 500
     return jsonify({"error": "Format de fichier non valide"}), 400
+
 @app.route('/process_columns', methods=['POST'])
 def process_columns():
     data = request.get_json()
@@ -45,58 +47,80 @@ def process_columns():
     column_types = data.get('column_types')
 
     if not file_path or not column_types:
-        return jsonify({"error": "Invalid data"}), 400
-        
-
+        return jsonify({"error": "Chemin du fichier ou types des colonnes manquants"}), 400
 
     try:
-        df = pd.read_excel(file_path) if file_path.endswith(('.xls', '.xlsx')) else pd.read_csv(file_path)
+        # Load the file
+        if file_path.endswith(('.xls', '.xlsx')):
+            df = pd.read_excel(file_path)
+        else:
+            df = pd.read_csv(file_path)
 
         results = {}
-        
-        for column, col_type in column_types.items():
-            
+        dictionnaire_indices = {}
+        current_index = 0  # Start index for global tracking
 
-            print(f"Processing column: {column} with type: {col_type}")  # Add logging for each column
+        for column, col_type in column_types.items():
+            print(f"Processing column: {column} (Type: {col_type})")
             valeurs = df[column].dropna().tolist()
-            
+
             try:
+                valeurs_uniques = set(valeurs)
+                debut = current_index
+                fin = current_index + len(valeurs_uniques) - 1
+                dictionnaire_indices[column] = (debut, fin)
+                current_index = fin + 1
+
                 if col_type == '1':  # Ordinal
-                    valeurs_triees = trier_selon_ordre_automatique(set(valeurs))
+                    valeurs_triees = trier_selon_ordre_automatique(valeurs_uniques)
                     codage = coder_ordinal(valeurs_triees)
                     matrice_codage = tablec_ordinal(codage, valeurs, valeurs_triees)
                 elif col_type == '0':  # Nominal
-                    codage = coder_valeurs(set(valeurs))
+                    codage = coder_valeurs(valeurs_uniques)
                     matrice_codage = appliquer_codage_en_matrice(valeurs, codage)
                 else:
                     return jsonify({"error": f"Type de colonne non valide pour {column}"}), 400
 
                 results[column] = matrice_codage.tolist()
             except Exception as col_error:
-                print(f"Error processing column {column}: {col_error}")  # Log column errors
                 return jsonify({"error": f"Erreur dans la colonne '{column}': {str(col_error)}"}), 500
 
-        # Additional operations like calculating distance and Burt matrix
+        # Calculate distance matrix
         try:
             matrix_values = np.concatenate(list(results.values()), axis=1)
             distance_matrix = calculer_distance_dissemblance(matrix_values)
             results['distance_matrix'] = distance_matrix.tolist()
         except Exception as dist_error:
-            print(f"Error calculating distance matrix: {dist_error}")  # Log matrix errors
             return jsonify({"error": f"Erreur lors du calcul de la matrice de distance : {str(dist_error)}"}), 500
 
+        # Calculate Burt matrix
         try:
+            print("raniiii 9bl apelle")
             burt_matrix = calculer_burts(matrix_values)
-            results['burt_matrix'] = burt_matrix.tolist()
+            results['burt_matrix'] = [[int(value) for value in row] for row in burt_matrix]
         except Exception as burt_error:
-            print(f"Error calculating Burt matrix: {burt_error}")  # Log Burt matrix errors
             return jsonify({"error": f"Erreur lors du calcul de la matrice de Burt : {str(burt_error)}"}), 500
 
-        return jsonify({"message": "Traitement terminé", "results": results})
+        # Calculate contingency tables
+        try:
+            contingency_tables = {}
+            
+            for col1, col2 in itertools.combinations(column_types.keys(), 2):
+                print(dictionnaire_indices)
+                print(col1)
+                print(col2)
+                contingency_table = clc_table_de_conti(dictionnaire_indices, burt_matrix, col1, col2)
+                
+                contingency_tables[f"{col1}_{col2}"] = contingency_table.tolist()
+
+            results['contingency_tables'] = contingency_tables
+        except Exception as cont_error:
+            return jsonify({"error": f"Erreur lors du calcul des tableaux de contingence : {str(cont_error)}"}), 500
+
+        return jsonify(results)
 
     except Exception as e:
-        print(f"General error: {str(e)}")  # Log general error
-        return jsonify({"error": f"Erreur générale : {str(e)}"}), 500
+        return jsonify({"error": f"Erreur générale dans le traitement des colonnes : {str(e)}"}), 500
 
 
 if __name__ == '__main__':
