@@ -214,7 +214,11 @@ export default function Component() {
   }
 
   return (
+<<<<<<< HEAD
     <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-0 w-screen">
+=======
+    <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12 w-screen">
+>>>>>>> 4c6bce0 (Your commit message)
       <div className="relative py-3 sm:max-w-full sm:mx-auto w-screen">
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-light-blue-500 shadow-lg transform -skew-y-6 sm:skew-y-0 sm:-rotate-6 sm:rounded-3xl"></div>
         <div className="relative px-4 py-10 bg-white shadow-lg sm:rounded-3xl sm:p-20 w-full">
@@ -303,7 +307,11 @@ export default function Component() {
                         {renderHistogram(results.contingency_tables[tableKey], tableKey)}
                         {renderCombobar(results.contingency_tables[tableKey], tableKey)}
                         {renderPieChart(results.contingency_tables[tableKey], tableKey)}
+<<<<<<< HEAD
 
+=======
+                        {renderMatrix(results.freq_tables[tableKey],tableKey)}
+>>>>>>> 4c6bce0 (Your commit message)
                       </div>
                     ))}
                   </div>
