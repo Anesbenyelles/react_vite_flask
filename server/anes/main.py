@@ -6,7 +6,10 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
 from Codage import *
+<<<<<<< HEAD
 import itertools
+=======
+>>>>>>> 981a924 (Save work before rebase)
 import itertools
 app = Flask(__name__)
 CORS(app)
@@ -100,6 +103,7 @@ def process_columns():
         except Exception as burt_error:
             return jsonify({"error": f"Erreur lors du calcul de la matrice de Burt : {str(burt_error)}"}), 500
 
+<<<<<<< HEAD
         # Initialize dictionaries for contingency tables, profit lines, inertia values
         contingency_tables = {}
         freq_tables = {}
@@ -111,6 +115,25 @@ def process_columns():
         # Process combinations of columns for contingency table analysis
         for col1, col2 in itertools.combinations(column_types.keys(), 2):
             print(f"Traitement des colonnes: {col1}, {col2}")
+=======
+        # Calculate contingency tables
+        try:
+            contingency_tables = {}
+            freq_tables={}
+            for col1, col2 in itertools.combinations(column_types.keys(), 2):
+                print(dictionnaire_indices)
+                print(col1)
+                print(col2)
+                contingency_table = clc_table_de_conti(dictionnaire_indices, burt_matrix, col1, col2)
+                
+                contingency_tables[f"{col1}_{col2}"] = contingency_table.tolist()
+            freq_table = calc_frequencies(contingency_table)
+            freq_tables[f"{col1}_{col2}"] = freq_table.tolist()
+            results['frequance_tables'] = freq_tables
+            results['contingency_tables'] = contingency_tables
+        except Exception as cont_error:
+            return jsonify({"error": f"Erreur lors du calcul des tableaux de contingence : {str(cont_error)}"}), 500
+>>>>>>> 981a924 (Save work before rebase)
 
             # Calculate contingency table
             contingency_table = clc_table_de_conti(dictionnaire_indices, burt_matrix, col1, col2)
