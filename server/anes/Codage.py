@@ -160,8 +160,9 @@ def calculer_burts(matrice_codage):
             matrice_burt[i][j] = np.sum(matrice_codage[:, i] * matrice_codage[:, j])
             
             # Co-occurrence calculation
-    print("rani ngl3 column talya")
-    matrice_burt = matrice_burt[:-1, :-1]  # Remove last row and last column
+    
+    
+    print(f"rani ngl3 column talya  {matrice_burt.shape[0]}") # Remove last row and last column
     print(matrice_burt)
     return matrice_burt
 
@@ -169,31 +170,34 @@ def calculer_burts(matrice_codage):
 
 
 def clc_table_de_conti(dictionnaire, matriceburt, variable1, variable2):
-    
     # Convert matriceburt to a NumPy array
     matriceburt = np.array(matriceburt)
+
     
     
     # Retrieve start and end indexes based on variable names in the dictionary
     try:
-        
         col_1, fin1 = dictionnaire[variable1]
         col_2, fin2 = dictionnaire[variable2]
-        print(f"debut1: {col_1}, fin1: {fin1}")
-        print(f"debut2: {col_2}, fin2: {fin2}")
+        
+    
     except KeyError as e:
         print(f"Erreur: la variable {e} n'existe pas dans le dictionnaire.")
         return
     
-    
     # Initialize the contingency table with correct size
     contingency_table = np.zeros((fin1 - col_1 + 1, fin2 - col_2 + 1))
+    indiceligne = 0
     
     # Iterate over the specified ranges for rows and columns
-    for i in range(col_1, fin1 ):  # Includes both start and end rows
-        for j in range(col_2, fin2 ):  # Includes columns from start to end
-            contingency_table[i - col_1][j - col_2] = matriceburt[i][j]
-    
+    for i in range(col_1, min(fin1 + 1, matriceburt.shape[0])):  # Prevent out of bounds on the row
+        indicecolumn = 0
+        for j in range(col_2, min(fin2 + 1, matriceburt.shape[0])):  # Prevent out of bounds on the column
+            
+            contingency_table[indiceligne][indicecolumn] = matriceburt[i][j]
+            indicecolumn += 1
+        indiceligne += 1
+
     print("Contingency Table Computed.")
     
     # Uncomment this block if saving to Excel is required
@@ -201,47 +205,127 @@ def clc_table_de_conti(dictionnaire, matriceburt, variable1, variable2):
     # df_contingency.to_excel('contingency_table.xlsx', index=False, header=False)
     # print(f"Table de contingence sauvegardée dans le fichier: contingency_table.xlsx")
     
+    print(contingency_table)
     return contingency_table
 
 
-def calc_profitligne(nom_fichier, fichier_sortie):
-    try:
-        # Lire le fichier Excel sans ignorer la première ligne
-        df = pd.read_excel(nom_fichier, header=None)  # Spécifiez header=None pour inclure toutes les lignes
-        matrice_proft = df.values
-        nbligne = matrice_proft.shape[0]
-        print(f"Je suis le nombre de lignes : {nbligne}")
-        nb_colmn = matrice_proft.shape[1]
-        print(f"Je suis le nombre de colonnes : {nb_colmn}")
+def calc_frequencies(matrice_frec):
+    print("Calculating frequencies...")
+
+    # Calculate the sum of all elements in the matrix
+    somme = np.sum(matrice_frec)
+    
+    # Normalize the matrix such that the sum is 1
+    if somme != 0:  # Avoid division by zero
+        matrice_frec = matrice_frec / somme  # Normalize the matrix
+    else:
+        print("The sum of elements is zero, normalization cannot be performed.")
+        return None  # Return None if normalization cannot be done due to zero sum
+    
+    print("Normalized matrix:")
+    print(matrice_frec)
+    return matrice_frec  # Return the normalized matrix
+
+def calc_profitligne(matrice_frec):
+    print(" iam profitttt")
+    
+    matrice_proft = np.nan_to_num(np.array(matrice_frec), nan=-1) 
+    nbligne = matrice_frec.shape[0]
+    
+    nb_colmn = matrice_frec.shape[1]
+    
         
-        # Diviser chaque élément par la somme de sa ligne
-        for i in range(nbligne):
-            somme_ligne = np.sum(matrice_proft[i]) 
-            # Calcule la somme de la ligne i
-            print(f" la somme de ligne  {i}   est    {somme_ligne}")
-            if somme_ligne != 0:  # Vérifie que la somme n'est pas zéro pour éviter la division par zéro
-                matrice_proft[i] = matrice_proft[i] / somme_ligne
-            else:
+    # Diviser chaque élément par la somme de sa ligne
+    for i in range(nbligne):
+        somme_ligne = np.sum(matrice_frec[i]) 
+        # Calcule la somme de la ligne i
+        
+        if somme_ligne != 0:  # Vérifie que la somme n'est pas zéro pour éviter la division par zéro
+            matrice_proft[i] = matrice_proft[i] / somme_ligne
+        else:
                 print(f"Somme de zéro évitée à la ligne {i}.")
         
         
-        df_modified = pd.DataFrame(matrice_proft)
-        df_modified.to_excel(fichier_sortie, index=False, header=None)
+        
+        print(matrice_proft)
+        print("donnne with profitligne")
+    return matrice_proft  # Retourner la matrice modifiée si besoin
 
-        return matrice_proft  # Retourner la matrice modifiée si besoin
 
-    except FileNotFoundError:
-        print(f"Le fichier '{nom_fichier}' n'a pas été trouvé.")
-        return None  # Retourner None si le fichier n'est pas trouvé
-    except Exception as e:
-        print(f"Une erreur est survenue : {e}")
-        return None  # Retourner None en cas d'erreur
-def calc_fréquences(valeurs):
-    """Calcule les fréquences des valeurs passées."""
-    try:
-        unique_vals, counts = np.unique(valeurs, return_counts=True)
-        frequencies = dict(zip(unique_vals, counts))
-        return frequencies
-    except Exception as e:
-        print(f"Erreur lors du calcul des fréquences : {str(e)}")
-        return {}
+
+import numpy as np
+
+def calculer_nuage_points(matrice_proft, matrmatrice_frec):
+    nuage = {}
+    
+    # Obtenir le nombre de lignes dans matrice_proft ou matrmatrice_frec
+    nbligne = len(matrice_proft)
+    print(f"Nombre de lignes: {nbligne}")  # Debugging
+    
+    for i in range(nbligne):
+        # Calcule la somme de la ligne i dans matrmatrice_frec
+        somme_ligne = np.sum(matrmatrice_frec[i])
+        print(f"Somme de la ligne {i} dans matrmatrice_frec: {somme_ligne}")  # Debugging
+        
+        # Récupère la ligne correspondante de matrice_proft
+        ligne = matrice_proft[i]
+        print(f"Ligne {i} dans matrice_proft: {ligne}")  # Debugging
+        
+        # Ajoute l'entrée au dictionnaire nuage
+        nuage[i] = (ligne, somme_ligne)
+    
+    print(f"Nuage de points: {nuage}")  # Debugging
+    return nuage
+
+def calculer_centre_gravite(nuage):
+    print(nuage)
+    print("calculer_centre_gravite")
+    # Initialiser la somme des coordonnées et la somme des fréquences
+    somme_points = np.zeros(len(next(iter(nuage.values()))[0]))  # Taille de chaque ligne (dimension du point)
+    somme_frequences = 0
+    print(f"Somme initiale des points: {somme_points}, Somme des fréquences: {somme_frequences}")  # Debugging
+    
+    for i in nuage:
+        ligne, frequence = nuage[i]
+        
+        # Ajouter la ligne multipliée par la fréquence à la somme des points
+        somme_points += np.array(ligne) * frequence
+        somme_frequences += frequence
+        
+        print(f"Après traitement du point {i}: somme_points = {somme_points}, somme_frequences = {somme_frequences}")  # Debugging
+    
+    # Vérifier que la somme des fréquences n'est pas nulle pour éviter la division par zéro
+    if somme_frequences == 0:
+        raise ValueError("La somme des fréquences est égale à zéro, le centre de gravité ne peut pas être calculé.")
+    
+    # Calculer le centre de gravité (moyenne pondérée par les fréquences)
+    centre_gravite = somme_points / somme_frequences
+    print(f"Centre de gravité calculé: {centre_gravite}")  # Debugging
+    
+    return centre_gravite
+
+def calculer_inertie(nuage, centre_gravite):
+
+    # Initialiser l'inertie
+    inertie = 0
+    print(f"Centre de gravité pour calculer l'inertie: {centre_gravite}")  # Debugging
+    
+    for i in nuage:
+        ligne, frequence = nuage[i]
+        
+        # Calculer la distance au carré entre le point et le centre de gravité
+        distance_carre = np.sum((np.array(ligne) - centre_gravite) ** 2)
+        print(f"Point {i}: ligne = {ligne}, centre_gravite = {centre_gravite}, distance_carre = {distance_carre}")  # Debugging
+        
+        # Ajouter la contribution pondérée par la fréquence à l'inertie
+        inertie += frequence * distance_carre
+        print(f"Inertie après traitement du point {i}: {inertie}")  # Debugging
+    
+    return inertie
+def convert_ndarray(data):
+    if isinstance(data, dict):
+        return {k: convert_ndarray(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [convert_ndarray(v) for v in data]
+    elif isinstance(data, np.ndarray):
+        return data.tolist()

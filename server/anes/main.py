@@ -1,14 +1,13 @@
+import json
 from flask import Flask, request, jsonify
 import pandas as pd
 import numpy as np
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
-from Codage import (afficher_colonnes, recuperer_colonne, calculer_distance_dissemblance,
-                    coder_valeurs, appliquer_codage_en_matrice, trier_selon_ordre_automatique,
-                    tablec_ordinal, coder_ordinal, calculer_burts, clc_table_de_conti)
+from Codage import *
 import itertools
-
+import itertools
 app = Flask(__name__)
 CORS(app)
 
@@ -39,6 +38,7 @@ def upload_file():
         except Exception as e:
             return jsonify({"error": f"Erreur lors du traitement du fichier : {str(e)}"}), 500
     return jsonify({"error": "Format de fichier non valide"}), 400
+
 
 @app.route('/process_columns', methods=['POST'])
 def process_columns():
@@ -89,39 +89,65 @@ def process_columns():
         try:
             matrix_values = np.concatenate(list(results.values()), axis=1)
             distance_matrix = calculer_distance_dissemblance(matrix_values)
-            results['distance_matrix'] = distance_matrix.tolist()
+            results['distance_matrix'] = distance_matrix.tolist()  # Ensure this is a list
         except Exception as dist_error:
             return jsonify({"error": f"Erreur lors du calcul de la matrice de distance : {str(dist_error)}"}), 500
 
         # Calculate Burt matrix
         try:
-            print("raniiii 9bl apelle")
             burt_matrix = calculer_burts(matrix_values)
-            results['burt_matrix'] = [[int(value) for value in row] for row in burt_matrix]
+            results['burt_matrix'] = burt_matrix.tolist()  # Ensure this is a list
         except Exception as burt_error:
             return jsonify({"error": f"Erreur lors du calcul de la matrice de Burt : {str(burt_error)}"}), 500
 
-        # Calculate contingency tables
-        try:
-            contingency_tables = {}
-            
-            for col1, col2 in itertools.combinations(column_types.keys(), 2):
-                print(dictionnaire_indices)
-                print(col1)
-                print(col2)
-                contingency_table = clc_table_de_conti(dictionnaire_indices, burt_matrix, col1, col2)
-                
-                contingency_tables[f"{col1}_{col2}"] = contingency_table.tolist()
+        # Initialize dictionaries for contingency tables, profit lines, inertia values
+        contingency_tables = {}
+        freq_tables = {}
+        proftlignes = {}
+        nuage_points = {}
+        center_gravitys = {}
+        inertie_values = {}
 
-            results['contingency_tables'] = contingency_tables
-        except Exception as cont_error:
-            return jsonify({"error": f"Erreur lors du calcul des tableaux de contingence : {str(cont_error)}"}), 500
+        # Process combinations of columns for contingency table analysis
+        for col1, col2 in itertools.combinations(column_types.keys(), 2):
+            print(f"Traitement des colonnes: {col1}, {col2}")
 
-        return jsonify(results)
+            # Calculate contingency table
+            contingency_table = clc_table_de_conti(dictionnaire_indices, burt_matrix, col1, col2)
+            contingency_tables[f"{col1}_{col2}"] = contingency_table.tolist()
 
+            freq_table = calc_frequencies(contingency_table)
+            freq_tables[f"{col1}_{col2}"] = freq_table.tolist()
+
+            # Calculate profit line
+            proftligne = calc_profitligne(freq_table)
+            proftlignes[f"{col1}_{col2}"] = proftligne.tolist()
+
+            # Calculate point cloud
+            nuage_point = calculer_nuage_points(proftligne, freq_table)
+            nuage_points[f"{col1}_{col2}"] = (
+                nuage_point.tolist() if isinstance(nuage_point, np.ndarray) else nuage_point
+            )
+
+            # Calculate gravity center
+            center_gravity = calculer_centre_gravite(nuage_point)
+            center_gravitys[f"{col1}_{col2}"] = ( center_gravity.tolist() if isinstance(center_gravity, np.ndarray) else center_gravity)
+
+            inertie = calculer_inertie(nuage_point, center_gravity)
+            print(f"Inertie pour {col1}_{col2} : {inertie}")
+
+            # Add contingency tables to final results
+            inertie_values[f"{col1}_{col2}"] = inertie  # Pas besoin de .tolist() si inertie est une valeur simple
+
+        # Ajouter les résultats à final dictionary
+        results['contingency_tables'] = contingency_tables
+        
+
+    
     except Exception as e:
         return jsonify({"error": f"Erreur générale dans le traitement des colonnes : {str(e)}"}), 500
+    
 
-
+    return jsonify(results)
 if __name__ == '__main__':
     app.run(debug=True)
