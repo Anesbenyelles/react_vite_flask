@@ -1,4 +1,3 @@
-
 import { ChevronDown, FileText, Upload } from 'lucide-react'
 import React, { useState } from 'react'
 import { Bar, BarChart, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -229,85 +228,49 @@ export default function Component() {
               </label>
             </div>
 
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Chargement...
-                </>
-              ) : (
-                <>
-                  <FileText className="mr-2 h-5 w-5" />
-                  Télécharger et traiter
-                </>
-              )}
+            <button onClick={handleSubmit} className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400" disabled={loading}>
+              {loading ? 'Chargement...' : 'Télécharger et traiter le fichier'}
             </button>
 
-            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+            {error && <p className="text-red-500 mt-4">{error}</p>}
 
             {columns.length > 0 && (
               <div className="mt-6">
-                <h2 className="text-lg font-medium text-gray-900 mb-2">Colonnes disponibles :</h2>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {columns.map((col, index) => (
-                    <div key={index} className="relative">
-                      <select
-                        onChange={(e) => handleColumnTypeChange(col, e.target.value)}
-                        value={columnTypes[col] || ''}
-                        className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                      >
-                        <option value="">Type pour {col}</option>
-                        <option value="0">Nominal</option>
-                        <option value="1">Ordinal</option>
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                        <ChevronDown className="h-4 w-4" />
-                      </div>
-                    </div>
-                  ))}
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold mb-2">Colonnes du fichier</h2>
+                  <ul className="list-disc pl-5">
+                    {columns.map((column, index) => (
+                      <li key={index} className="mb-2">
+                        <label htmlFor={`column-${column}`} className="text-sm">{column}</label>
+                        <select
+                          id={`column-${column}`}
+                          value={columnTypes[column] || ''}
+                          onChange={(e) => handleColumnTypeChange(column, e.target.value)}
+                          className="ml-2 px-2 py-1 border border-gray-300 rounded-md"
+                        >
+                          <option value="">Choisir un type</option>
+                          <option value="0">nominal</option>
+                          <option value="1">ordinal</option>
+                        </select>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
+
+                <button onClick={handleSubmit} className="w-full py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400" disabled={loading}>
+                  {loading ? 'Traitement...' : 'Traiter les données'}
+                </button>
               </div>
             )}
 
             {results && (
-              <div className="mt-8">
-                <h2 className="text-xl font-semibold mb-4">Résultats</h2>
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Matrice de dissemblance</h3>
-                    {results.distance_matrix && renderMatrix(results.distance_matrix, 'Matrice de dissemblance')}
-                    {results.distance_matrix && renderHistogram(results.distance_matrix, 'Matrice de dissemblance')}
-                    {/* {results.distance_matrix && renderCombobar(results.distance_matrix, 'Matrice de dissemblance')}
-                    {results.distance_matrix && renderPieChart(results.distance_matrix, 'Matrice de dissemblance')} */}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Matrice de Burt</h3>
-                    {results.burt_matrix && renderMatrix(results.burt_matrix, 'Matrice de Burt')}
-                    {results.burt_matrix && renderHistogram(results.burt_matrix, 'Matrice de Burt')}
-                    {/* {results.burt_matrix && renderCombobar(results.burt_matrix, 'Matrice de Burt')}
-                    {results.burt_matrix && renderPieChart(results.burt_matrix, 'Matrice de Burt')} */}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Tables de contingence</h3>
-                    {Object.keys(results.contingency_tables || {}).map((tableKey) => (
-                      <div key={tableKey} className="mb-4">
-                        <h4 className="text-md font-medium text-gray-700 mb-2">{tableKey}</h4>
-                        {renderMatrix(results.contingency_tables[tableKey], tableKey)}
-                        {renderHistogram(results.contingency_tables[tableKey], tableKey)}
-                        {renderCombobar(results.contingency_tables[tableKey], tableKey)}
-                        {renderPieChart(results.contingency_tables[tableKey], tableKey)}
-
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              <div className="mt-6">
+                <h2 className="text-lg font-semibold mb-4">Résultats du traitement</h2>
+                {results.matrice_dissemblance && renderMatrix(results.matrice_dissemblance, 'Matrice de dissemblance')}
+                {results.matrice_burt && renderMatrix(results.matrice_burt, 'Matrice de Burt')}
+                {results.histogram && renderHistogram(results.histogram, 'Histogramme')}
+                {results.combobar && renderCombobar(results.combobar, 'Combobar')}
+                {results.pie && renderPieChart(results.pie, 'Camembert')}
               </div>
             )}
           </div>
