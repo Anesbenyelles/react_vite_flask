@@ -295,18 +295,26 @@ export default function Component() {
                     {results.burt_matrix && renderPieChart(results.burt_matrix, 'Matrice de Burt')} */}
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Tables de contingence</h3>
-                    {Object.keys(results.contingency_tables || {}).map((tableKey) => (
-                      <div key={tableKey} className="mb-4">
-                        <h4 className="text-md font-medium text-gray-700 mb-2">{tableKey}</h4>
-                        {renderMatrix(results.contingency_tables[tableKey], tableKey)}
-                        {renderHistogram(results.contingency_tables[tableKey], tableKey)}
-                        {renderCombobar(results.contingency_tables[tableKey], tableKey)}
-                        {renderPieChart(results.contingency_tables[tableKey], tableKey)}
+  <h3 className="text-lg font-medium text-gray-900 mb-4">Tables de contingence</h3>
+  {results?.contingency_tables &&
+    Object.keys(results.contingency_tables).map((tableKey) => (
+      <section key={tableKey} className="mb-6">
+        <h4 className="text-md font-semibold text-gray-700 mb-3">{tableKey}</h4>
+        <div className="space-y-4">
+          {renderMatrix(results.contingency_tables[tableKey], tableKey)}
+          {renderHistogram(results.contingency_tables[tableKey], tableKey)}
+          {renderCombobar(results.contingency_tables[tableKey], tableKey)}
+          {renderPieChart(results.contingency_tables[tableKey], tableKey)}
+        </div>
+        {results?.freq_tables?.[tableKey] && (
+          <div className="mt-4">
+            {renderMatrix(results.freq_tables[tableKey], tableKey)}
+          </div>
+        )}
+      </section>
+    ))}
+</div>
 
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             )}

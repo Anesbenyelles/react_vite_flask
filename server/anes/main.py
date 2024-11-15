@@ -109,40 +109,45 @@ def process_columns():
         inertie_values = {}
 
         # Process combinations of columns for contingency table analysis
-        for col1, col2 in itertools.combinations(column_types.keys(), 2):
-            print(f"Traitement des colonnes: {col1}, {col2}")
 
-            # Calculate contingency table
+        for col1, col2 in itertools.combinations(column_types.keys(), 2):
             contingency_table = clc_table_de_conti(dictionnaire_indices, burt_matrix, col1, col2)
-            contingency_tables[f"{col1}_{col2}"] = contingency_table.tolist()
+            contingency_tables[f"{col1}_{col2}"] = contingency_table.tolist()  # Convert to list
 
             freq_table = calc_frequencies(contingency_table)
-            freq_tables[f"{col1}_{col2}"] = freq_table.tolist()
+            freq_tables[f"{col1}_{col2}"] = freq_table.tolist()  # Convert to list
 
-            # Calculate profit line
             proftligne = calc_profitligne(freq_table)
-            proftlignes[f"{col1}_{col2}"] = proftligne.tolist()
+            proftlignes[f"{col1}_{col2}"] = proftligne.tolist()  # Convert to list
 
-            # Calculate point cloud
             nuage_point = calculer_nuage_points(proftligne, freq_table)
-            nuage_points[f"{col1}_{col2}"] = (
-                nuage_point.tolist() if isinstance(nuage_point, np.ndarray) else nuage_point
-            )
+            nuage_points[f"{col1}_{col2}"] = nuage_point.tolist() if isinstance(nuage_point, np.ndarray) else nuage_point
 
-            # Calculate gravity center
             center_gravity = calculer_centre_gravite(nuage_point)
-            center_gravitys[f"{col1}_{col2}"] = ( center_gravity.tolist() if isinstance(center_gravity, np.ndarray) else center_gravity)
+            center_gravitys[f"{col1}_{col2}"] = center_gravity.tolist() if isinstance(center_gravity, np.ndarray) else center_gravity
 
             inertie = calculer_inertie(nuage_point, center_gravity)
-            print(f"Inertie pour {col1}_{col2} : {inertie}")
+            inertie_values[f"{col1}_{col2}"] = inertie.tolist() if isinstance(inertie, np.ndarray) else inertie
 
-            # Add contingency tables to final results
-            inertie_values[f"{col1}_{col2}"] = inertie  # Pas besoin de .tolist() si inertie est une valeur simple
-
-        # Ajouter les résultats à final dictionary
-        results['contingency_tables'] = contingency_tables
-        
-
+        results.update({
+            'contingency_tables': contingency_tables,
+            'freq_tables': freq_tables,
+            'profit_lines': proftlignes,
+            #'point_clouds': nuage_points,
+            'center_gravitys': center_gravitys,
+            'inertia_values': inertie_values
+        })
+        print("freq_tables****************************************")
+        print(results['freq_tables'])
+        print("profit_lines****************************************")
+        print(results['profit_lines'])
+        # print("point_clouds****************************************")
+        # print(results['point_clouds'])
+        print("center_gravitys****************************************")
+        print(results['center_gravitys'])
+        print("inertia_values****************************************")
+        print(results['inertia_values'])
+    
     
     except Exception as e:
         return jsonify({"error": f"Erreur générale dans le traitement des colonnes : {str(e)}"}), 500
