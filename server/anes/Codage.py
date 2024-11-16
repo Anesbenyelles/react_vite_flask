@@ -20,13 +20,21 @@ def afficher_colonnes(fichier_excel):
 # Fonction pour obtenir les valeurs d'une colonne sous forme de liste
 def recuperer_colonne(fichier_excel, nom_colonne):
     try:
+        # Lecture du fichier Excel
         df = pd.read_excel(fichier_excel)
+        
+        # Vérification si la colonne existe
         if nom_colonne in df.columns:
-            return df[nom_colonne].tolist()
+            return df[nom_colonne].unique().tolist()
         else:
             print(f"La colonne '{nom_colonne}' n'existe pas dans le fichier.")
+            return None
+    except FileNotFoundError:
+        print(f"Le fichier '{fichier_excel}' est introuvable.")
+    except pd.errors.ExcelFileError:
+        print(f"Erreur lors de la lecture du fichier '{fichier_excel}'. Vérifiez que le fichier est bien un Excel.")
     except Exception as e:
-        print(f"Erreur lors du chargement du fichier : {str(e)}")
+        print(f"Erreur inattendue : {str(e)}")
 
 # Fonction pour obtenir les valeurs uniques d'une colonne et les encoder
 def coder_valeurs(valeurs_uniques):

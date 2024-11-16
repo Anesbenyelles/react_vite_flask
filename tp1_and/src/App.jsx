@@ -252,29 +252,22 @@ export default function Component() {
 
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
-            {columns.length > 0 && (
-              <div className="mt-6">
-                <h2 className="text-lg font-medium text-gray-900 mb-2">Colonnes disponibles :</h2>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {columns.map((col, index) => (
-                    <div key={index} className="relative">
-                      <select
-                        onChange={(e) => handleColumnTypeChange(col, e.target.value)}
-                        value={columnTypes[col] || ''}
-                        className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                      >
-                        <option value="">Type pour {col}</option>
-                        <option value="0">Nominal</option>
-                        <option value="1">Ordinal</option>
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                        <ChevronDown className="h-4 w-4" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {Object.entries(columns).map(([col, values], index) => (
+    <div key={index} className="relative">
+        <select
+            onChange={(e) => handleColumnTypeChange(col, e.target.value)}
+            value={columnTypes[col] || ''}
+            className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:ring-indigo-500"
+        >
+            <option value="">Type pour {col}</option>
+            <option value="0">Nominal</option>
+            <option value="1">Ordinal</option>
+        </select>
+        <div className="text-gray-600 mt-1">
+            {values.join(", ")}
+        </div>
+    </div>
+))}
 
             {results && (
               <div className="mt-8">

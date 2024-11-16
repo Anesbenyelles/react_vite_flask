@@ -33,7 +33,11 @@ def upload_file():
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
         try:
-            columns = afficher_colonnes(file_path)
+            columns={}
+            nomcolumns = afficher_colonnes(file_path)
+            for i in nomcolumns:
+                columns[i]=recuperer_colonne(file_path,i)
+            print(columns)
             return jsonify({"columns": columns, "file_path": file_path})
         except Exception as e:
             return jsonify({"error": f"Erreur lors du traitement du fichier : {str(e)}"}), 500
