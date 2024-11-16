@@ -10,7 +10,9 @@ import itertools
 import itertools
 app = Flask(__name__)
 CORS(app)
-
+def amine (n):
+    print("amine")
+    
 UPLOAD_FOLDER = './uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['ALLOWED_EXTENSIONS'] = {'xls', 'xlsx', 'csv'}
