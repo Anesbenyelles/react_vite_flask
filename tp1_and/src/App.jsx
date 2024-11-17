@@ -1,7 +1,7 @@
-
-import { ChevronDown, FileText, Upload } from 'lucide-react'
-import React, { useState } from 'react'
-import { Bar, BarChart, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { FileText, Upload } from 'lucide-react';
+import React, { useState } from 'react';
+import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
+import { Bar, BarChart, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 export default function Component() {
   const [file, setFile] = useState(null)
@@ -10,18 +10,43 @@ export default function Component() {
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-
+  const [orderedLists, setOrderedLists] = useState({}); 
   const handleFileChange = (event) => {
     setFile(event.target.files[0])
   }
-
   const handleColumnTypeChange = (column, value) => {
     setColumnTypes({
       ...columnTypes,
       [column]: value,
-    })
-  }
+    });
 
+    if (value === '1') { // Ordinal selected
+      const uniqueValues = [...new Set(columns[column])];
+      setOrderedLists((prev) => ({
+        ...prev,
+        [column]: uniqueValues,
+      }));
+    } else {
+      setOrderedLists((prev) => {
+        const newLists = { ...prev };
+        delete newLists[column];
+        return newLists;
+      });
+    }
+  };
+
+  const handleDragEnd = (result, column) => {
+    if (!result.destination) return;
+
+    const items = Array.from(orderedLists[column]);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setOrderedLists((prev) => ({
+      ...prev,
+      [column]: items,
+    }));
+  };
   const handleSubmit = async () => {
     if (!file) {
       alert('Veuillez sélectionner un fichier.')
@@ -253,22 +278,51 @@ export default function Component() {
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
             {Object.entries(columns).map(([col, values], index) => (
-    <div key={index} className="relative">
-        <select
+        <div key={index} className="relative">
+          <select
             onChange={(e) => handleColumnTypeChange(col, e.target.value)}
             value={columnTypes[col] || ''}
             className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:ring-indigo-500"
-        >
-            <option value="">Type pour {col}</option>
+          >
+            <option value="">Type for {col}</option>
             <option value="0">Nominal</option>
             <option value="1">Ordinal</option>
-        </select>
-        <div className="text-gray-600 mt-1">
-            {values.join(", ")}
+          </select>
+          <div className="text-gray-600 mt-1">
+            {columnTypes[col] === '1' ? (
+              <DragDropContext onDragEnd={(result) => handleDragEnd(result, col)}>
+                <Droppable droppableId={col}>
+                  {(provided) => (
+                    <ul
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                      className="space-y-1"
+                    >
+                      {orderedLists[col].map((value, index) => (
+                        <Draggable key={value} draggableId={value} index={index}>
+                          {(provided) => (
+                            <li
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className="p-2 bg-white border rounded shadow"
+                            >
+                              {value}
+                            </li>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </ul>
+                  )}
+                </Droppable>
+              </DragDropContext>
+            ) : (
+              values.join(', ')
+            )}
+          </div>
         </div>
-    </div>
-))}
-
+      ))}
             {results && (
               <div className="mt-8">
                 <h2 className="text-xl font-semibold mb-4">Résultats</h2>
