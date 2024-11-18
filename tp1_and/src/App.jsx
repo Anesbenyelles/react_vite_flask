@@ -1,84 +1,74 @@
 import { FileText, Upload } from 'lucide-react';
 import React, { useState } from 'react';
-import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
-import { Bar, BarChart, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { PieChart, Pie, Cell } from 'recharts';
+import ColumnOrder from './components/ColumnOrder';
 
 export default function Component() {
-  const [file, setFile] = useState(null)
-  const [columns, setColumns] = useState([])
-  const [columnTypes, setColumnTypes] = useState({})
-  const [results, setResults] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [orderedLists, setOrderedLists] = useState({}); 
+
+  const [file, setFile] = useState(null);
+  const [columns, setColumns] = useState({});
+  const [columnTypes, setColumnTypes] = useState({});
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [orderedLists, setOrderedLists] = useState({});
+
   const handleFileChange = (event) => {
-    setFile(event.target.files[0])
-  }
-  const handleColumnTypeChange = (column, value) => {
-    setColumnTypes({
-      ...columnTypes,
-      [column]: value,
+    setFile(event.target.files[0]);
+  };
+
+ const handleColumnTypeChange = (col, value) => {
+  setColumnTypes((prev) => ({
+    ...prev,
+    [col]: value,
+  }));
+
+  // Clear the order if type changes to something else
+  if (value !== "1") {
+    setOrderedLists((prev) => {
+      const updated = { ...prev };
+      delete updated[col];
+      return updated;
     });
+  }
+};
 
-    if (value === '1') { // Ordinal selected
-      const uniqueValues = [...new Set(columns[column])];
-      setOrderedLists((prev) => ({
-        ...prev,
-        [column]: uniqueValues,
-      }));
-    } else {
-      setOrderedLists((prev) => {
-        const newLists = { ...prev };
-        delete newLists[column];
-        return newLists;
-      });
-    }
-  };
+  
 
-  const handleDragEnd = (result, column) => {
-    if (!result.destination) return;
-
-    const items = Array.from(orderedLists[column]);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setOrderedLists((prev) => ({
-      ...prev,
-      [column]: items,
-    }));
-  };
   const handleSubmit = async () => {
     if (!file) {
-      alert('Veuillez sélectionner un fichier.')
-      return
+      alert('Veuillez sélectionner un fichier.');
+      return;
     }
 
-    const formData = new FormData()
-    formData.append('file', file)
+    const formData = new FormData();
+    formData.append('file', file);
 
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
       const response = await fetch('http://127.0.0.1:5000/upload', {
         method: 'POST',
         body: formData,
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
       if (data.error) {
-        setError(data.error)
-        setLoading(false)
-        return
+        setError(data.error);
+        setLoading(false);
+        return;
       }
 
-      setColumns(data.columns)
-      await processColumns(data.file_path)
+      setColumns(data.columns);
+      await processColumns(data.file_path);
     } catch (err) {
-      setError('Erreur lors de l\'upload du fichier')
-      setLoading(false)
+      setError("Erreur lors de l'upload du fichier");
+      setLoading(false);
     }
-  }
+  };
+
 
   const processColumns = async (filePath) => {
     try {
@@ -278,47 +268,30 @@ export default function Component() {
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
             {Object.entries(columns).map(([col, values], index) => (
-        <div key={index} className="relative">
+        <div key={index} className="relative border p-4 rounded">
+          <label className="block font-semibold">{col}</label>
           <select
             onChange={(e) => handleColumnTypeChange(col, e.target.value)}
-            value={columnTypes[col] || ''}
-            className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:ring-indigo-500"
+            value={columnTypes[col] || ""}
+            className="block w-full mt-2 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
           >
-            <option value="">Type for {col}</option>
-            <option value="0">Nominal</option>
+            <option value="">Select Type</option>
             <option value="1">Ordinal</option>
+            <option value="2">Nominal</option>
           </select>
-          <div className="text-gray-600 mt-1">
-            {columnTypes[col] === '1' ? (
-              <DragDropContext onDragEnd={(result) => handleDragEnd(result, col)}>
-                <Droppable droppableId={col}>
-                  {(provided) => (
-                    <ul
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
-                      className="space-y-1"
-                    >
-                      {orderedLists[col].map((value, index) => (
-                        <Draggable key={value} draggableId={value} index={index}>
-                          {(provided) => (
-                            <li
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className="p-2 bg-white border rounded shadow"
-                            >
-                              {value}
-                            </li>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </ul>
-                  )}
-                </Droppable>
-              </DragDropContext>
+
+          <div className="text-gray-600 mt-3">
+            {columnTypes[col] === "1" ? (
+              <ColumnOrder
+                variables={values}
+                currentRep={col}
+                onSubmitData={(rep, order) => {
+                  const updatedOrderedLists = { ...orderedLists, [rep]: order };
+                  setOrderedLists(updatedOrderedLists);
+                }}
+              />
             ) : (
-              values.join(', ')
+              <p>{values.join(", ")}</p>
             )}
           </div>
         </div>
